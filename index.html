@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kicau Mania - Hand Tracking</title>
+    <title>Kicau Mania Kucing - Hand Tracking</title>
     <style>
         body {
             margin: 0;
@@ -21,13 +21,13 @@
         
         #container {
             position: relative;
-            width: 640px;
-            height: 480px;
+            width: 960px;
+            height: 720px;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            background-color: #000;
         }
-        /* Video disembunyikan, kita gambar ulang di canvas beserta garis tangannya */
         
         video {
             display: none;
@@ -38,7 +38,6 @@
             height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
-            /* Mirror effect */
         }
         
         #status {
@@ -47,8 +46,8 @@
             font-weight: bold;
             z-index: 10;
             transition: color 0.3s;
+            text-align: center;
         }
-        /* Kotak visual pembantu untuk area pemicu (Area Wajah) */
         
         .target-box {
             position: absolute;
@@ -56,10 +55,23 @@
             left: 30%;
             width: 40%;
             height: 50%;
-            border: 3px dashed rgba(255, 255, 255, 0.4);
+            border: 3px dashed rgba(255, 255, 255, 0.5);
             pointer-events: none;
             border-radius: 20px;
             z-index: 5;
+        }
+        
+        #catGif {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: auto;
+            z-index: 8;
+            display: none;
+            border-radius: 10px;
+            pointer-events: none;
         }
     </style>
 
@@ -74,6 +86,9 @@
     <div id="container">
         <video id="video" autoplay playsinline></video>
         <canvas id="output_canvas"></canvas>
+
+        <img id="catGif" src="kicaukucing.gif" alt="Kicau Kucing">
+
         <div class="target-box"></div>
     </div>
     <div id="status">Klik layar untuk mengaktifkan kamera!</div>
@@ -86,22 +101,19 @@
         const canvasCtx = canvasElement.getContext('2d');
         const audioElement = document.getElementById('kicauAudio');
         const statusText = document.getElementById('status');
-
-        // Set resolusi internal canvas
-        canvasElement.width = 640;
-        canvasElement.height = 480;
+        const catGifElement = document.getElementById('catGif');
+        canvasElement.width = 960;
+        canvasElement.height = 720;
 
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            // Gambar tangkapan video ke canvas
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
             let handInTriggerArea = false;
 
             if (results.multiHandLandmarks) {
                 for (const landmarks of results.multiHandLandmarks) {
-                    // Gambar garis skeleton di tangan
                     drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
                         color: '#00FF00',
                         lineWidth: 4
@@ -111,8 +123,6 @@
                         lineWidth: 2,
                         radius: 3
                     });
-
-                    // LOGIKA UTAMA: Cek apakah ada titik tangan di area tengah (X: 30%-70%, Y: 20%-70%)
                     const inArea = landmarks.some(point =>
                         point.x > 0.30 && point.x < 0.70 &&
                         point.y > 0.20 && point.y < 0.70
@@ -122,28 +132,23 @@
                 }
             }
 
-            // Kontrol Audio
             if (handInTriggerArea) {
-                statusText.innerText = "KICAU MANIA MANTAP! 🐦🔥";
+                statusText.innerText = "KICAU KUCAU KUCAU MANIAAA!!!";
                 statusText.style.color = "#00FF00";
-
-                // Play audio jika sedang pause
+                catGifElement.style.display = 'block';
                 if (audioElement.paused) {
                     audioElement.play().catch(e => console.log("Menunggu interaksi user..."));
                 }
             } else {
                 statusText.innerText = "Arahkan tangan ke dalam kotak putus-putus";
                 statusText.style.color = "white";
-
-                // Pause audio jika tangan keluar area
+                catGifElement.style.display = 'none';
                 if (!audioElement.paused) {
                     audioElement.pause();
                 }
             }
             canvasCtx.restore();
         }
-
-        // Inisialisasi MediaPipe Hands
         const hands = new Hands({
             locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -156,19 +161,15 @@
             minTrackingConfidence: 0.6
         });
         hands.onResults(onResults);
-
-        // Inisialisasi Kamera
         const camera = new Camera(videoElement, {
             onFrame: async() => {
                 await hands.send({
                     image: videoElement
                 });
             },
-            width: 640,
-            height: 480
+            width: 960,
+            height: 720
         });
-
-        // Browser modern wajib ada interaksi klik/sentuh dari user sebelum mengizinkan Audio Play
         document.body.addEventListener('click', () => {
             camera.start();
             statusText.innerText = "Memuat kamera & AI...";
